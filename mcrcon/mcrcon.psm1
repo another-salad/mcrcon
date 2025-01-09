@@ -40,7 +40,7 @@ class RconSession {
     [int]$Port
     [securestring]$Password
 
-    RconConnection([string]$Address, [int]$Port, [securestring]$Password) {
+    RconSession([string]$Address, [int]$Port, [securestring]$Password) {
         $this.Address = $Address
         $this.Port = $Port
         $this.Password = $Password
