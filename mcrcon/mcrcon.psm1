@@ -141,13 +141,23 @@ Function Send-RconCommand {
     }
 }
 
-Function Get-Status {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [RconSession]$Session
-    )
-    process {
-        $Session.Send((New-RconCommand -Command "status"))
-    }
-}
+# https://minecraft.wiki/w/Commands
+# Minecraft commands, some high level functions will be made
+# but we will need to be able to pass in raw commands to something
+# non-hideous too.
+
+# Snippet from messing around so I remember this..
+
+#$yeppers = $s.Send((New-RconCommand -Command "list uuids"))
+#[System.Text.Encoding]::ASCII.GetString($yeppers[12..($yeppers.Length)])
+
+# Function Get-Status {
+#     [CmdletBinding()]
+#     param (
+#         [Parameter(Mandatory, ValueFromPipeline)]
+#         [RconSession]$Session
+#     )
+#     process {
+#         $Session.Send((New-RconCommand -Command "status"))
+#     }
+# }
