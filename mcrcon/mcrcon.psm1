@@ -128,36 +128,52 @@ Function Get-RconPasswordFromServerProperties {
     (Get-Content $ServerPropertiesPath) | Where-Object { $_ -match $rgx  } | ForEach-Object { $_ -replace $rgx , '' } | ConvertTo-SecureString -AsPlainText -Force
 }
 
+Function Get-RconResponse {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [byte[]]$Buffer,
+        [int]$StartIndex = 12
+    )
+    [System.Text.Encoding]::ASCII.GetString($Buffer[$StartIndex..($Buffer.Length)])
+}
+
 Function Send-RconCommand {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [RconSession]$Session,
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory)]
         [RconCommand]$Command
     )
+    $resp = $Session.Send($Command)
+    Get-RconResponse $resp
+}
+
+
+# https://minecraft.wiki/w/Commands
+# Minecraft commands
+
+Function Get-Players {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Session
+    )
     process {
-        $Session.Send($Command)
+        $Session | Send-RconCommand -Command (New-RconCommand -Command "list uuids")
     }
 }
 
-# https://minecraft.wiki/w/Commands
-# Minecraft commands, some high level functions will be made
-# but we will need to be able to pass in raw commands to something
-# non-hideous too.
-
-# Snippet from messing around so I remember this..
-
-#$yeppers = $s.Send((New-RconCommand -Command "list uuids"))
-#[System.Text.Encoding]::ASCII.GetString($yeppers[12..($yeppers.Length)])
-
-# Function Get-Status {
-#     [CmdletBinding()]
-#     param (
-#         [Parameter(Mandatory, ValueFromPipeline)]
-#         [RconSession]$Session
-#     )
-#     process {
-#         $Session.Send((New-RconCommand -Command "status"))
-#     }
-# }
+Function New-ServerMsg {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [RconSession]$Session,
+        [Parameter(Mandatory)]
+        [string]$Message
+    )
+    process {
+        $Session | Send-RconCommand -Command (New-RconCommand -Command "say $Message")
+    }
+}
