@@ -8,6 +8,73 @@ enum RConPacketType {
     SERVERDATA_RESPONSE_VALUE = 0
 }
 
+$script:SessionConfigs = "$($env:HOME)/rconsessionconfig.xml"
+
+# Very Minecraft specific
+class RconSessionConfig {
+    hidden [string] $_id = (New-Guid).Guid
+    [string]$Address
+    [int]$Port
+    [string]$PathToServerProperties
+}
+
+Function New-RconSessionConfig {
+    [RconSessionConfig]::new()
+}
+
+Function Import-RconSessionConfigs {
+    if (Test-Path -Path $script:SessionConfigs) {
+        return Import-Clixml -Path $script:SessionConfigs
+    } else {
+        # create the clixml file
+        $null | Export-Clixml -Path $script:SessionConfigs -Force
+        return @()
+    }
+}
+
+Function Add-RconSessionConfig {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [RconSessionConfig[]]$Configs
+    )
+    begin {
+        $currentConfigs = Import-RconSessionConfigs
+        $currentConfigsList = [System.Collections.ArrayList]@($currentConfigs)
+    }
+    process {
+        foreach ($config in $Configs) {
+            if ($config._id -notin $currentConfigsList._id) {
+                [void]$currentConfigsList.Add($config)
+            }
+        }
+    }
+    end {
+        $currentConfigsList | Export-Clixml -Path $script:SessionConfigs -Force
+    }
+}
+
+Function Remove-RconSessionConfig {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [RconSessionConfig[]]$Configs
+    )
+    begin {
+        $currentConfigs = Import-RconSessionConfigs
+        $currentConfigsList = [System.Collections.ArrayList]@($currentConfigs)
+    }
+    process {
+        foreach ($config in $Configs) {
+            $currentConfigsList = $currentConfigsList | Where-Object { $_._id -ne $config._id }
+        }
+    }
+    end {
+        $currentConfigsList | Export-Clixml -Path $script:SessionConfigs -Force
+    }
+}
+
+
 class RconCommand {
     [string]$Command
     [ValidateSet(2, 3)]
@@ -35,6 +102,7 @@ Function New-RconCommand {
 }
 
 class RconSession {
+    hidden [string] $_id = (New-Guid).Guid
     [System.Net.Sockets.Socket]$Socket
     [string]$Address
     [int]$Port
@@ -58,6 +126,7 @@ class RconSession {
         $this.Socket = $_Socket
     }
 
+    # Would need testing against other Rcon implementations (currently only Minecraft Java Edition)
     [void] Authenticate() {
         $ResponseBuffer = $this.Send((New-RconCommand -Command ($this.Password | ConvertFrom-SecureString -AsPlainText) -Type ([int][RConPacketType]::SERVERDATA_AUTH)))
         if ([BitConverter]::ToInt32($ResponseBuffer[4..7], 0) -eq -1) {
@@ -118,6 +187,7 @@ Function Set-InteractiveSessionPassword {
     $Password
 }
 
+# Minecraft server specific (only tested with Java Edition)
 Function Get-RconPasswordFromServerProperties {
     [CmdletBinding()]
     param (
@@ -126,6 +196,12 @@ Function Get-RconPasswordFromServerProperties {
     )
     $rgx = '^rcon\.password='
     (Get-Content $ServerPropertiesPath) | Where-Object { $_ -match $rgx  } | ForEach-Object { $_ -replace $rgx , '' } | ConvertTo-SecureString -AsPlainText -Force
+}
+
+Function New-RconSessionsFromConfigFile {
+    Import-RconSessionConfigs | ForEach-Object {
+        New-RconSession -Address $_.Address -Port $_.Port -Password (Get-RconPasswordFromServerProperties -ServerPropertiesPath $_.PathToServerProperties)
+    }
 }
 
 Function Get-RconResponse {
@@ -150,30 +226,56 @@ Function Send-RconCommand {
     Get-RconResponse $resp
 }
 
+# Wraps around Send-RconCommand to provide a consistent output object
+Function Send-RconCommandWrapper {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [RconSession[]]$Session,
+        [Parameter(Mandatory)]
+        [string]$Command
+    )
+    begin {
+        # This is to combat the odd behaviour I am seeing when accessing the Address property of the session object
+        # Without explicitly setting the index of the object being processed, we get OverloadDefinitions for Address
+        # rather than its string value.
+        $Index = 0
+    }
+    process {
+        [PSCustomObject]@{
+            Session = $Session
+            ServerAddress = "$($Session[$Index].Address):$($Session.Port)"
+            Response = ($Session | Send-RconCommand -Command (New-RconCommand -Command $Command))
+        }
+        $Index++
+    }
+}
 
+#region Minecraft Server commands
 # https://minecraft.wiki/w/Commands
-# Minecraft commands
 
 Function Get-Players {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        $Session
+        [RconSession[]]$Session
     )
     process {
-        $Session | Send-RconCommand -Command (New-RconCommand -Command "list uuids")
+        $Session | Send-RconCommandWrapper -Command "list uuids"
     }
 }
 
-Function New-ServerMsg {
+Function Send-ServerMsg {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [RconSession]$Session,
+        [RconSession[]]$Session,
         [Parameter(Mandatory)]
         [string]$Message
     )
     process {
-        $Session | Send-RconCommand -Command (New-RconCommand -Command "say $Message")
+        $Session | Send-RconCommandWrapper -Command "say $Message"
     }
 }
+
+#endregion
