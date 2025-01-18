@@ -182,6 +182,17 @@ Function New-RconSession {
     [RconSession]::new($Address, $Port, $Password)
 }
 
+Function Close-RconSession {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [RconSession[]]$Session
+    )
+    process {
+        $Session | ForEach-Object { $_.Close() }
+    }
+}
+
 Function Set-InteractiveSessionPassword {
     $Password = Read-Host -Prompt "Enter RCon password" -AsSecureString
     $Password
