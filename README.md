@@ -1,6 +1,6 @@
 # mcrcon
 
-Powershell 7+ wrapper for RCON (I'll only be testing this with Minecraft Java edition).
+Powershell 7+ wrapper for RCON (I'll only be testing this with Minecraft Java edition).  
 <https://developer.valvesoftware.com/wiki/Source_RCON_Protocol>  
 
 A warning just in case your brain isn't active...  
