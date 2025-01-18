@@ -4,7 +4,7 @@ param (
 )
 
 $publishModuleSplat = @{
-    Path = "$((Get-Location).Path)/mrcon"
+    Path = "$((Get-Location).Path)/mcrcon"
     Repository = $Repository
     NuGetApiKey = $NuGetApiKey  # <--- currently just a string as this is meaningless to me because its a local repo.
 }
