@@ -265,7 +265,7 @@ Function Send-RconCommandWrapper {
 #region Minecraft Server commands
 # https://minecraft.wiki/w/Commands
 
-Function Get-Players {
+Function Get-PlayersRaw {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -277,6 +277,38 @@ Function Get-Players {
     }
     process {
         $Session | Send-RconCommandWrapper -Command $Command
+    }
+}
+
+Function Get-Players {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [RconSession[]]$Session
+    )
+    process {
+        $Session | Get-PlayersRaw | ForEach-Object {
+            $response = $_.Response
+            $reg = [regex]::new("(?<username>\w+) \((?<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})\)")
+            $AllMatches = $reg.Matches($response)
+            $players = @()
+
+            foreach ($match in $AllMatches) {
+                $username = $match.Groups["username"].Value
+                $uuid = $match.Groups["uuid"].Value
+                $players += [PSCustomObject]@{
+                    Username = $username
+                    UUID = $uuid
+                }
+            }
+
+            [PSCustomObject]@{
+                Session = $_.Session
+                ServerAddress = $_.ServerAddress
+                PlayerCount = $AllMatches.Count
+                Players = $players
+            }
+        }
     }
 }
 
