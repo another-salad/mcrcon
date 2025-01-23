@@ -269,10 +269,14 @@ Function Get-Players {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [RconSession[]]$Session
+        [RconSession[]]$Session,
+        [switch]$OmmitUUIDs
     )
+    begin {
+        $Command = if ($OmmitUUID) { "list" } else { "list uuids" }
+    }
     process {
-        $Session | Send-RconCommandWrapper -Command "list uuids"
+        $Session | Send-RconCommandWrapper -Command $Command
     }
 }
 
