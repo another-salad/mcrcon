@@ -312,6 +312,23 @@ Function Get-Players {
     }
 }
 
+Function Send-ActivePlayersAnnouncement {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [RconSession[]]$Session
+    )
+    process {
+        $Session | Get-Players | ForEach-Object {
+            if ($_.PlayerCount -gt 0) {
+                $players = $_.Players | ForEach-Object { $_.Username }
+                $players = $players -join ", "
+                $Session | Send-RconCommandWrapper -Command "say Active players: $players"
+            }
+        }
+    }
+}
+
 Function Send-ServerMsg {
     [CmdletBinding()]
     param (
