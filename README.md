@@ -34,8 +34,9 @@ System.Net.Sockets.Socket 10.10.0.51      25575 System.Security.SecureString
 ```powershell
 $sessions | get-Players
 
-Session       ServerAddress        Response
--------       -------------        --------
-{RconSession} 10.10.0.50:25575 There are 1 of a max of 10 players online: SomeGuy (Some-Tasty-Guid)…
-{RconSession} 10.10.0.51:25575 There are 0 of a max of 10 players online: …
+Session       ServerAddress        PlayerCount Players
+-------       -------------        ----------- -------
+{RconSession} 10.10.0.50:25575               1 {@{Username=TotalyRealPerson; UUID=cfa1e851-50d5-4440-926d-ab99951fa3b3}}
+{RconSession} 10.10.0.51:25575               0 {}
+
 ```
