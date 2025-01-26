@@ -323,7 +323,7 @@ Function Send-ActivePlayersAnnouncement {
             if ($_.PlayerCount -gt 0) {
                 $players = $_.Players | ForEach-Object { $_.Username }
                 $players = $players -join ", "
-                $Session | Send-RconCommandWrapper -Command "say Active players: $players"
+                $Session | Send-RconCommandWrapper -Command "say $(Get-Date -Format 'HH:mm:ss')  Active players: $players"
             }
         }
     }
